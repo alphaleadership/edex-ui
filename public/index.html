@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Express in Electron</title>
+</head>
+<body>
+    <h1>Express in Electron</h1>
+    <p id="express-port">Express port: Loading...</p>
+
+    Bien sûr, voici le code côté client (dans le fichier public/index.html) pour interagir avec le terminal et envoyer des commandes au serveur via WebSocket. Nous allons utiliser la bibliothèque Xterm.js pour rendre le terminal dans le navigateur.
+
+    Assurez-vous d'installer Xterm.js dans votre projet en exécutant npm install xterm dans le terminal.
+    
+    public/index.html (suite) :
+    
+    html
+    
+    <!-- ... (autre contenu HTML) ... -->
+    
+    <div id="terminal-container"></div>
+    
+    <script src="https://unpkg.com/xterm"></script>
+    
+    <script>
+        const { ipcRenderer } = require('electron');
+    
+        // Demander au processus principal le numéro de port Express
+        ipcRenderer.send('express-port-request');
+    
+        // Gérer la réponse du processus principal
+        ipcRenderer.on('express-port-response', (event, port) => {
+            document.getElementById('express-port').textContent = `Express port: ${port}`;
+    
+            // Créer une connexion WebSocket pour le terminal
+            const terminalSocket = new WebSocket(`ws://localhost:${port + 1}`); // Utilisez le port correct pour le WebSocket du terminal
+    
+            // Gérer les événements de la connexion WebSocket
+            terminalSocket.addEventListener('open', () => {
+                console.log('Connexion WebSocket du terminal ouverte.');
+    
+                // Initialiser Xterm.js dans le conteneur spécifié
+                const terminalContainer = document.getElementById('terminal-container');
+                const term = new Terminal();
+                term.open(terminalContainer);
+    
+                // Gérer les données reçues du terminal et les afficher dans Xterm.js
+                terminalSocket.addEventListener('message', (event) => {
+                    term.write(event.data);
+                });
+    
+                // Gérer l'entrée utilisateur dans Xterm.js et l'envoyer au serveur via WebSocket
+                term.onData((data) => {
+                    terminalSocket.send(data);
+                });
+            });
+    
+            terminalSocket.addEventListener('close', () => {
+                console.log('Connexion WebSocket du terminal fermée.');
+            });
+        });
+    </script>
+    
+</body>
+</html>

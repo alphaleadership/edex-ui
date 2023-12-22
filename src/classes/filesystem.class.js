@@ -1,9 +1,15 @@
+
+function replacer(arg){
+    return path.normalize(path.resolve(path.join(...arguments)))
+}
+
+
 class FilesystemDisplay {
     constructor(opts) {
         if (!opts.parentId) throw "Missing options";
 
         const fs = require("fs");
-        const path = require("path");
+        
         this.cwd = [];
         this.cwd_path = null;
         this.iconcolor = `rgb(${window.theme.r}, ${window.theme.g}, ${window.theme.b})`;
@@ -196,7 +202,7 @@ class FilesystemDisplay {
                         category: "other",
                         hidden: false
                     };
-
+                   
                     if (typeof fstat !== "undefined") {
                         e.lastAccessed = fstat.mtime.getTime();
 
