@@ -105,18 +105,7 @@ class LocationGlobe {
             };
 
             // Add random satellites
-            let constellation = [];
-            for(var i = 0; i< 2; i++){
-                for(var j = 0; j< 3; j++){
-                    constellation.push({
-                        lat: 50 * i - 30 + 15 * Math.random(),
-                        lon: 120 * j - 120 + 30 * i,
-                        altitude: Math.random() * (1.7 - 1.3) + 1.3
-                    });
-                }
-            }
-
-            this.globe.addConstellation(constellation);
+            
         }, 2000);
 
         // Init updaters when intro animation is done
@@ -211,7 +200,12 @@ class LocationGlobe {
     }
     updateConns() {
         if (!window.mods.globe.globe || window.mods.netstat.offline) return false;
-        window.si.networkConnections().then(conns => {
+        window.si.networkConnections((error, conns) => {
+            if (error) {
+                console.error("Erreur lors de la récupération des connexions réseau :", error);
+                return;
+            }
+        
             let newconns = [];
             conns.forEach(conn => {
                 let ip = conn.peeraddress;
@@ -220,7 +214,7 @@ class LocationGlobe {
                     newconns.push(ip);
                 }
             });
-
+        
             this.conns.forEach(conn => {
                 if (newconns.indexOf(conn.ip) !== -1) {
                     newconns.splice(newconns.indexOf(conn.ip), 1);
@@ -228,11 +222,12 @@ class LocationGlobe {
                     this.removeConn(conn.ip);
                 }
             });
-
+        
             newconns.forEach(ip => {
                 this.addConn(ip);
             });
         });
+        
     }
 }
 

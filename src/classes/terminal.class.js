@@ -178,18 +178,49 @@ class Terminal {
 
             this.socket = new WebSocket("ws://"+sockHost+":"+sockPort);
             this.socket.onopen = () => {
-                let attachAddon = new AttachAddon(this.socket);
-                this.term.loadAddon(attachAddon);
-                this.fit();
+                try {
+                    let attachAddon = new AttachAddon(this.socket);
+                    this.term.loadAddon(attachAddon);
+                    this.fit();
+                } catch (error) {
+                    console.error("Error attaching WebSocket addon:", error);
+                }
+
             };
-            this.socket.onerror = e => {throw JSON.stringify(e)};
+            this.term.onData(data => {
+                this.socket.send(data);
+                console.log("Sent to WebSocket:", data);
+                              this.term.refresh(0,this.term.rows-1);
+            });
+            this.socket.onerror = e => {
+                console.error("WebSocket error:", e);
+            };
+            this.socket.addEventListener("message", e => {
+                console.log("WebSocket message received:", e.data.toString());
+                // ... le reste du code ...
+                this.term.write(e.data)
+                this.term.refresh(0,this.term.rows-1);
+            });
+            
+            this.write = cmd => {
+                console.log("Sending command:", cmd);
+                this.socket.send(cmd);
+            };
+            this.term.onData(data => {
+                console.log("Terminal data received:", data);
+            });this.term.onBell(() => {
+                console.error("Terminal bell triggered.");
+            });
+                  
             this.socket.onclose = e => {
                 if (this.onclose) {
-                    this.onclose(e);
+                    this.onclose(e);    
                 }
             };
 
             this.lastSoundFX = Date.now();
+          
+            
             this.socket.addEventListener("message", e => {
                 let d = Date.now();
 
@@ -245,7 +276,8 @@ class Terminal {
 
             this.fit = () => {
                 this.lastRefit = Date.now();
-                let {cols, rows} = fitAddon.proposeDimensions();
+                let cols = this.term.cols
+                let rows = this.term.rows
 
                 // Apply custom fixes based on screen ratio, see #302
                 let w = screen.width;
@@ -271,7 +303,7 @@ class Terminal {
                     this.resize(cols, rows);
                 }
             };
-
+            
             this.resize = (cols, rows) => {
                 this.term.resize(cols, rows);
                 this._sendSizeToServer();
@@ -338,7 +370,7 @@ class Terminal {
                             });
                             break;
                         default:
-                            reject("Unsupported OS");
+                            resolve(process.cwd())
                     }
                 });
             };
@@ -356,8 +388,29 @@ class Terminal {
                                 }
                             });
                             break;
+                            case 'Windows_NT':
+                                require("child_process").exec(`tasklist /FI "PID eq ${pid}" /FO CSV`, (err, tasklist) => {
+                                    if (err !== null) {
+                                        reject(err);
+                                    } else {
+                                        const lines = tasklist.trim().split('\r\n');
+                                        console.log(tasklist)
+                                        if (lines.length > 1) {
+                                            const columns = lines[1].split('","');
+                                            if (columns.length > 1) {
+                                                resolve(columns[0].replace('"', '').trim());
+                                            } else {
+                                                reject('Impossible de récupérer le nom du processus');
+                                            }
+                                        } else {
+                                            reject('Aucun processus trouvé avec cet ID');
+                                        }
+                                    }
+                                });
+                                break;
                         default:
-                            reject("Unsupported OS");
+                          reject("os non supporté")
+                            break;
                     }
                 });
             };
@@ -388,6 +441,7 @@ class Terminal {
                 if (this.renderer && this._nextTickUpdateProcess) {
                     this._nextTickUpdateProcess = false;
                     this._getTtyProcess(this.tty).then(process => {
+                        console.log(process)
                         if (this.tty._process === process) return;
                         this.tty._process = process;
                         if (this.renderer) {
@@ -431,6 +485,7 @@ class Terminal {
                 }
             });
             this.Ipc.on("terminal_channel-"+this.port, (e, ...args) => {
+                console.log(args)
                 switch(args[0]) {
                     case "Renderer startup":
                         this.renderer = e.sender;
@@ -461,12 +516,14 @@ class Terminal {
                     this.ondisconnected(code, reason);
                 });
                 ws.on("message", msg => {
+                    console.log(msg.toString())
                     this.tty.write(msg);
                 });
                 this.tty.onData(data => {
                     this._nextTickUpdateTtyCWD = true;
                     this._nextTickUpdateProcess = true;
                     try {
+                        console.log(data)
                         ws.send(data);
                     } catch (e) {
                         // Websocket closed

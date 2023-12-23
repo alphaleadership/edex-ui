@@ -1,7 +1,7 @@
 {
   "name": "edex-ui",
   "productName": "eDEX-UI",
-  "version": "2.2.8",
+  "version": "3.0.0",
   "description": "A science fiction desktop running everywhere. Awesome.",
   "keywords": [
     "desktop",
@@ -45,8 +45,7 @@
     "productName": "eDEX-UI",
     "publish": "github",
     "asar": true,
-    "compression": "normal",
-    "copyright": "Copyright © 2017-2021 Gabriel 'Squared' SAILLARD <gabriel@saillard.dev> (https://gaby.dev)",
+    "compression": false,
     "directories": {
       "output": "dist",
       "app": "prebuild-src"
@@ -54,6 +53,7 @@
     "forceCodeSigning": false,
     "npmRebuild": true,
     "artifactName": "eDEX-UI-${os}-${arch}.${ext}",
+    "portable": true,
     "linux": {
       "target": [
         "AppImage"
@@ -99,14 +99,14 @@
     }
   },
   "dependencies": {
-    "clean-css": "5.2.1",
-    "electron": "^12.1.0",
-    "electron-builder": "^22.14.5",
+    "clean-css": "5.3.1",
+    "electron": "^19.0.15",
+    "electron-builder": "^23.5.0",
     "electron-rebuild": "^2.3.5",
-    "mime-types": "^2.1.33",
+    "mime-types": "^2.1.35",
     "node-abi": "2.30.1",
     "node-json-minify": "1.0.0",
-    "terser": "^5.9.0"
+    "terser": "^5.14.2"
   },
   "optionalDependencies": {
     "cson-parser": "4.0.9"

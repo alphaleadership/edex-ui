@@ -1,5 +1,17 @@
 const signale = require("signale");
 const {app, BrowserWindow, dialog, shell} = require("electron");
+const path = require("path");
+const url = require("url");
+const fs = require("fs");
+const settingsFile = path.join(__dirname, "settings.json");
+const shortcutsFile = path.join(__dirname, "shortcuts.json");
+const lastWindowStateFile = path.join(__dirname, "lastWindowState.json");
+const themesDir = path.join(__dirname, "themes");
+const innerThemesDir = path.join(__dirname, "assets/themes");
+const kblayoutsDir = path.join(__dirname, "keyboards");
+const innerKblayoutsDir = path.join(__dirname, "assets/kb_layouts");
+const fontsDir = path.join(__dirname, "fonts");
+const innerFontsDir = path.join(__dirname, "assets/fonts");
 
 process.on("uncaughtException", e => {
     signale.fatal(e);
@@ -21,61 +33,19 @@ signale.start(`Starting eDEX-UI v${app.getVersion()}`);
 signale.info(`With Node ${process.versions.node} and Electron ${process.versions.electron}`);
 signale.info(`Renderer is Chrome ${process.versions.chrome}`);
 
-const gotLock = app.requestSingleInstanceLock();
-if (!gotLock) {
-    signale.fatal("Error: Another instance of eDEX is already running. Cannot proceed.");
-    app.exit(1);
-}
-
-signale.time("Startup");
-
-const electron = require("electron");
-require('@electron/remote/main').initialize()
-const ipc = electron.ipcMain;
-const path = require("path");
-const url = require("url");
-const fs = require("fs");
-const which = require("which");
-const Terminal = require("./classes/terminal.class.js").Terminal;
-
-ipc.on("log", (e, type, content) => {
-    signale[type](content);
-});
-
-var win, tty, extraTtys;
-const settingsFile = path.join(electron.app.getPath("userData"), "settings.json");
-const shortcutsFile = path.join(electron.app.getPath("userData"), "shortcuts.json");
-const lastWindowStateFile = path.join(electron.app.getPath("userData"), "lastWindowState.json");
-const themesDir = path.join(electron.app.getPath("userData"), "themes");
-const innerThemesDir = path.join(__dirname, "assets/themes");
-const kblayoutsDir = path.join(electron.app.getPath("userData"), "keyboards");
-const innerKblayoutsDir = path.join(__dirname, "assets/kb_layouts");
-const fontsDir = path.join(electron.app.getPath("userData"), "fonts");
-const innerFontsDir = path.join(__dirname, "assets/fonts");
-
-// Unset proxy env variables to avoid connection problems on the internal websockets
-// See #222
-if (process.env.http_proxy) delete process.env.http_proxy;
-if (process.env.https_proxy) delete process.env.https_proxy;
-
-// Bypass GPU acceleration blocklist, trading a bit of stability for a great deal of performance, mostly on Linux
-app.commandLine.appendSwitch("ignore-gpu-blocklist");
-app.commandLine.appendSwitch("enable-gpu-rasterization");
-app.commandLine.appendSwitch("enable-video-decode");
-
 // Fix userData folder not setup on Windows
 try {
-    fs.mkdirSync(electron.app.getPath("userData"));
-    signale.info(`Created config dir at ${electron.app.getPath("userData")}`);
+    fs.mkdirSync(__dirname);
+    signale.info(`Created config dir at ${__dirname}`);
 } catch(e) {
-    signale.info(`Base config dir is ${electron.app.getPath("userData")}`);
+    signale.info(`Base config dir is ${__dirname}`);
 }
 // Create default settings file
 if (!fs.existsSync(settingsFile)) {
     fs.writeFileSync(settingsFile, JSON.stringify({
         shell: (process.platform === "win32") ? "powershell.exe" : "bash",
         shellArgs: '',
-        cwd: electron.app.getPath("userData"),
+        cwd: __dirname,
         keyboard: "en-US",
         theme: "tron",
         termFontSize: 15,
@@ -153,7 +123,7 @@ fs.readdirSync(innerFontsDir).forEach(e => {
 });
 
 // Version history logging
-const versionHistoryPath = path.join(electron.app.getPath("userData"), "versions_log.json");
+const versionHistoryPath = path.join(__dirname, "versions_log.json");
 var versionHistory = fs.existsSync(versionHistoryPath) ? require(versionHistoryPath) : {};
 var version = app.getVersion();
 if (typeof versionHistory[version] === "undefined") {
@@ -165,6 +135,36 @@ if (typeof versionHistory[version] === "undefined") {
 	versionHistory[version].lastSeen = Date.now();
 }
 fs.writeFileSync(versionHistoryPath, JSON.stringify(versionHistory, 0, 2), {encoding:"utf-8"});
+
+const gotLock = app.requestSingleInstanceLock();
+if (!gotLock) {
+    signale.fatal("Error: Another instance of eDEX is already running. Cannot proceed.");
+    app.exit(1);
+}
+
+signale.time("Startup");
+
+const electron = require("electron");
+require('@electron/remote/main').initialize()
+const ipc = electron.ipcMain;
+
+const which = require("which");
+const Terminal = require("./classes/terminal.class.js").Terminal;
+
+ipc.on("log", (e, type, content) => {
+    signale[type](content);
+});
+
+var win, tty, extraTtys;
+// Unset proxy env variables to avoid connection problems on the internal websockets
+// See #222
+if (process.env.http_proxy) delete process.env.http_proxy;
+if (process.env.https_proxy) delete process.env.https_proxy;
+
+// Bypass GPU acceleration blocklist, trading a bit of stability for a great deal of performance, mostly on Linux
+app.commandLine.appendSwitch("ignore-gpu-blocklist");
+app.commandLine.appendSwitch("enable-gpu-rasterization");
+app.commandLine.appendSwitch("enable-video-decode");
 
 function createWindow(settings) {
     signale.info("Creating window...");
@@ -231,7 +231,7 @@ app.on('ready', async () => {
     if (!require("fs").existsSync(settings.cwd)) throw new Error("Configured cwd path does not exist.");
 
     // See #366
-    let cleanEnv = await require("shell-env")(settings.shell).catch(e => { throw e; });
+    let cleanEnv = await require("../shellenv").shellEnvSync(settings.shell)
 
     Object.assign(cleanEnv, {
         TERM: "xterm-256color",
@@ -347,6 +347,7 @@ app.on('ready', async () => {
 });
 
 app.on('web-contents-created', (e, contents) => {
+    require("@electron/remote/main").enable(contents)
     // Prevent creating more than one window
     contents.on('new-window', (e, url) => {
         e.preventDefault();

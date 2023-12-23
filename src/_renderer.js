@@ -1,4 +1,5 @@
-// Disable eval()
+// Disable eval()settingsDir
+const os = require("systeminformation");
 window.eval = global.eval = function () {
     throw new Error("eval() is disabled for security reasons.");
 };
@@ -40,18 +41,138 @@ const electron = require("electron");
 const remote = require("@electron/remote");
 const ipc = electron.ipcRenderer;
 
-const settingsDir = remote.app.getPath("userData");
-const themesDir = path.join(settingsDir, "themes");
-const keyboardsDir = path.join(settingsDir, "keyboards");
-const fontsDir = path.join(settingsDir, "fonts");
-const settingsFile = path.join(settingsDir, "settings.json");
-const shortcutsFile = path.join(settingsDir, "shortcuts.json");
-const lastWindowStateFile = path.join(settingsDir, "lastWindowState.json");
-
+function replacer(arg){
+    return path.normalize(path.resolve(path.join(...arguments)))
+}
+ipc.send("log","info",path.resolve("./"))
+const themesDir = replacer("./", "themes");
+const keyboardsDir = replacer("./", "keyboards");
+const fontsDir = replacer("./", "fonts");
+const settingsFile = replacer("./", "settings.json");
+const shortcutsFile = replacer("./", "shortcuts.json");
+const lastWindowStateFile = replacer("./", "lastWindowState.json");
+const settingsDir="./"
 // Load config
-window.settings = require(settingsFile);
-window.shortcuts = require(shortcutsFile);
-window.lastWindowState = require(lastWindowStateFile);
+try{
+    window.settings = require(settingsFile);
+    window.shortcuts = require(shortcutsFile);
+    window.lastWindowState = require(lastWindowStateFile);
+}catch(error){
+    window.settings = {
+        "shell": "powershell.exe",
+        "shellArgs": "",
+        "cwd": "D:\\edex-ui-master\\edex-ui\\src",
+        "keyboard": "en-US",
+        "theme": "tron",
+        "termFontSize": 15,
+        "audio": true,
+        "audioVolume": 1,
+        "disableFeedbackAudio": false,
+        "clockHours": 24,
+        "pingAddr": "8.8.8.8",
+        "port": 3000,
+        "nointro": false,
+        "nocursor": false,
+        "forceFullscreen": false,
+        "allowWindowed": true,
+        "excludeThreadsFromToplist": true,
+        "hideDotfiles": false,
+        "fsListView": false,
+        "experimentalGlobeFeatures": false,
+        "experimentalFeatures": false
+    }
+    window.shortcuts = [
+        {
+            "type": "app",
+            "trigger": "Ctrl+Shift+C",
+            "action": "COPY",
+            "enabled": true
+        },
+        {
+            "type": "app",
+            "trigger": "Ctrl+Shift+V",
+            "action": "PASTE",
+            "enabled": true
+        },
+        {
+            "type": "app",
+            "trigger": "Ctrl+Tab",
+            "action": "NEXT_TAB",
+            "enabled": true
+        },
+        {
+            "type": "app",
+            "trigger": "Ctrl+Shift+Tab",
+            "action": "PREVIOUS_TAB",
+            "enabled": true
+        },
+        {
+            "type": "app",
+            "trigger": "Ctrl+X",
+            "action": "TAB_X",
+            "enabled": true
+        },
+        {
+            "type": "app",
+            "trigger": "Ctrl+Shift+S",
+            "action": "SETTINGS",
+            "enabled": true
+        },
+        {
+            "type": "app",
+            "trigger": "Ctrl+Shift+K",
+            "action": "SHORTCUTS",
+            "enabled": true
+        },
+        {
+            "type": "app",
+            "trigger": "Ctrl+Shift+F",
+            "action": "FUZZY_SEARCH",
+            "enabled": true
+        },
+        {
+            "type": "app",
+            "trigger": "Ctrl+Shift+L",
+            "action": "FS_LIST_VIEW",
+            "enabled": true
+        },
+        {
+            "type": "app",
+            "trigger": "Ctrl+Shift+H",
+            "action": "FS_DOTFILES",
+            "enabled": true
+        },
+        {
+            "type": "app",
+            "trigger": "Ctrl+Shift+P",
+            "action": "KB_PASSMODE",
+            "enabled": true
+        },
+        {
+            "type": "app",
+            "trigger": "Ctrl+Shift+I",
+            "action": "DEV_DEBUG",
+            "enabled": false
+        },
+        {
+            "type": "app",
+            "trigger": "Ctrl+Shift+F5",
+            "action": "DEV_RELOAD",
+            "enabled": true
+        },
+        {
+            "type": "shell",
+            "trigger": "Ctrl+Shift+Alt+Space",
+            "action": "neofetch",
+            "linebreak": true,
+            "enabled": false
+        }
+    ]
+    window.lastWindowState = {
+        "useFullscreen": false
+    }
+}
+
 
 // Load CLI parameters
 if (remote.process.argv.includes("--nointro")) {
@@ -59,7 +180,7 @@ if (remote.process.argv.includes("--nointro")) {
 } else {
     window.settings.nointroOverride = false;
 }
-if (electron.remote.process.argv.includes("--nocursor")) {
+if (remote.process.argv.includes("--nocursor")) {
     window.settings.nocursorOverride = true;
 } else {
     window.settings.nocursorOverride = false;
@@ -70,9 +191,9 @@ ipc.once("getThemeOverride", (e, theme) => {
     if (theme !== null) {
         window.settings.theme = theme;
         window.settings.nointroOverride = true;
-        _loadTheme(require(path.join(themesDir, window.settings.theme+".json")));
+        _loadTheme(require(replacer("./",themesDir, window.settings.theme+".json")));
     } else {
-        _loadTheme(require(path.join(themesDir, window.settings.theme+".json")));
+        _loadTheme(require(replacer("./",themesDir, window.settings.theme+".json")));
     }
 });
 ipc.send("getThemeOverride");
@@ -93,9 +214,9 @@ window._loadTheme = theme => {
     }
 
     // Load fonts
-    let mainFont = new FontFace(theme.cssvars.font_main, `url("${path.join(fontsDir, theme.cssvars.font_main.toLowerCase().replace(/ /g, '_')+'.woff2').replace(/\\/g, '/')}")`);
-    let lightFont = new FontFace(theme.cssvars.font_main_light, `url("${path.join(fontsDir, theme.cssvars.font_main_light.toLowerCase().replace(/ /g, '_')+'.woff2').replace(/\\/g, '/')}")`);
-    let termFont = new FontFace(theme.terminal.fontFamily, `url("${path.join(fontsDir, theme.terminal.fontFamily.toLowerCase().replace(/ /g, '_')+'.woff2').replace(/\\/g, '/')}")`);
+    let mainFont = new FontFace(theme.cssvars.font_main, `url("${replacer(fontsDir, theme.cssvars.font_main.toLowerCase().replace(/ /g, '_')+'.woff2').replace(/\\/g, '/')}")`);
+    let lightFont = new FontFace(theme.cssvars.font_main_light, `url("${replacer(fontsDir, theme.cssvars.font_main_light.toLowerCase().replace(/ /g, '_')+'.woff2').replace(/\\/g, '/')}")`);
+    let termFont = new FontFace(theme.terminal.fontFamily, `url("${replacer(fontsDir, theme.terminal.fontFamily.toLowerCase().replace(/ /g, '_')+'.woff2').replace(/\\/g, '/')}")`);
 
     document.fonts.add(mainFont);
     document.fonts.load("12px "+theme.cssvars.font_main);
@@ -176,9 +297,9 @@ function waitForFonts() {
 
 // A proxy function used to add multithreading to systeminformation calls - see backend process manager @ _multithread.js
 function initSystemInformationProxy() {
-    const { nanoid } = require("nanoid/non-secure");
+    const { nanoid } = require("./nanoid");
 
-    window.si = new Proxy({}, {
+    window.si = new Proxy(os, {
         apply: () => {throw new Error("Cannot use sysinfo proxy directly as a function")},
         set: () => {throw new Error("Cannot set a property on the sysinfo proxy")},
         get: (target, prop, receiver) => {
@@ -187,8 +308,10 @@ function initSystemInformationProxy() {
 
                 return new Promise((resolve, reject) => {
                     let id = nanoid();
+                   // console.log(id)
                     ipc.once("systeminformation-reply-"+id, (e, res) => {
                         if (callback) {
+                            console.log(args[args.length - 1])
                             args[args.length - 1](res);
                         }
                         resolve(res);
@@ -196,15 +319,27 @@ function initSystemInformationProxy() {
                     ipc.send("systeminformation-call", prop, id, ...args);
                 });
             };
-        }
+        },
     });
 }
+window.networkInterfaces=()=>{
+  
+    return new Promise((resolve, reject) => {
+       os.networkInterfaces(resolve)
+    })
+}
+window.networkConnections=()=>{
+   
+    return new Promise(async(resolve, reject) => {
 
+         os.networkConnections(resolve)
+    })
+}
 // Init audio
 window.audioManager = new AudioManager();
 
 // See #223
-electron.remote.app.focus();
+remote.app.focus();
 
 let i = 0;
 if (window.settings.nointro || window.settings.nointroOverride) {
@@ -220,7 +355,7 @@ if (window.settings.nointro || window.settings.nointroOverride) {
 // Startup boot log
 function displayLine() {
     let bootScreen = document.getElementById("boot_screen");
-    let log = fs.readFileSync(path.join(__dirname, "assets", "misc", "boot_log.txt")).toString().split('\n');
+    let log = fs.readFileSync(replacer(__dirname, "assets", "misc", "boot_log.txt")).toString().split('\n');
 
     function isArchUser() {
         return require("os").platform() === "linux"
@@ -243,7 +378,7 @@ function displayLine() {
 
     switch(true) {
         case i === 2:
-            bootScreen.innerHTML += `eDEX-UI Kernel version ${electron.remote.app.getVersion()} boot at ${Date().toString()}; root:xnu-1699.22.73~1/RELEASE_X86_64`;
+            bootScreen.innerHTML += `eDEX-UI Kernel version ${remote.app.getVersion()} boot at ${Date().toString()}; root:xnu-1699.22.73~1/RELEASE_X86_64`;
         case i === 4:
             setTimeout(displayLine, 500);
             break;
@@ -372,7 +507,7 @@ async function initUI() {
     <section id="keyboard" style="opacity:0;">
     </section>`;
     window.keyboard = new Keyboard({
-        layout: path.join(keyboardsDir, settings.keyboard+".json"),
+        layout: replacer(keyboardsDir, settings.keyboard+".json"),
         container: "keyboard"
     });
 
@@ -487,7 +622,7 @@ async function initUI() {
     window.onmouseup = e => {
         if (window.keyboard.linkedToTerm) window.term[window.currentTerm].term.focus();
     };
-    window.term[0].term.writeln("\033[1m"+`Welcome to eDEX-UI v${electron.remote.app.getVersion()} - Electron v${process.versions.electron}`+"\033[0m");
+    window.term[0].term.writeln("\x1b[1m"+`Welcome to eDEX-UI v${remote.app.getVersion()} - Electron v${process.versions.electron}`+"\x1b[0m");
 
     await _delay(100);
 
@@ -519,7 +654,7 @@ window.themeChanger = theme => {
 window.remakeKeyboard = layout => {
     document.getElementById("keyboard").innerHTML = "";
     window.keyboard = new Keyboard({
-        layout: path.join(keyboardsDir, layout+".json" || settings.keyboard+".json"),
+        layout: replacer(keyboardsDir, layout+".json" || settings.keyboard+".json"),
         container: "keyboard"
     });
     ipc.send("setKbOverride", layout);
@@ -603,10 +738,10 @@ window.openSettings = async () => {
         if (th === window.settings.theme) return;
         themes += `<option>${th}</option>`;
     });
-    for (let i = 0; i < electron.remote.screen.getAllDisplays().length; i++) {
+    for (let i = 0; i < remote.screen.getAllDisplays().length; i++) {
         if (i !== window.settings.monitor) monitors += `<option>${i}</option>`;
     }
-    let nets = await window.si.networkInterfaces();
+    let nets = await window.networkInterfaces();
     nets.forEach(net => {
         if (net.iface !== window.mods.netstat.iface) ifaces += `<option>${net.iface}</option>`;
     });
@@ -616,7 +751,7 @@ window.openSettings = async () => {
 
     new Modal({
         type: "custom",
-        title: `Settings <i>(v${electron.remote.app.getVersion()})</i>`,
+        title: `Settings <i>(v${remote.app.getVersion()})</i>`,
         html: `<table id="settingsEditor">
                     <tr>
                         <th>Key</th>
@@ -802,7 +937,7 @@ window.openSettings = async () => {
             {label: "Open in External Editor", action:`electron.shell.openPath('${settingsFile}');electronWin.minimize();`},
             {label: "Save to Disk", action: "window.writeSettingsFile()"},
             {label: "Reload UI", action: "window.location.reload(true);"},
-            {label: "Restart eDEX", action: "electron.remote.app.relaunch();electron.remote.app.quit();"}
+            {label: "Restart eDEX", action: "remote.app.relaunch();remote.app.quit();"}
         ]
     }, () => {
         // Link the keyboard back to the terminal
@@ -916,7 +1051,7 @@ window.openShortcutsHelp = () => {
     window.keyboard.detach();
     new Modal({
         type: "custom",
-        title: `Available Keyboard Shortcuts <i>(v${electron.remote.app.getVersion()})</i>`,
+        title: `Available Keyboard Shortcuts <i>(v${remote.app.getVersion()})</i>`,
         html: `<h5>Using either the on-screen or a physical keyboard, you can use the following shortcuts:</h5>
                 <details open id="shortcutsHelpAccordeon1">
                     <summary>Emulator shortcuts</summary>
@@ -1032,7 +1167,7 @@ window.useAppShortcut = action => {
             window.keyboard.togglePasswordMode();
             return true;
         case "DEV_DEBUG":
-            electron.remote.getCurrentWindow().webContents.toggleDevTools();
+            remote.getCurrentWindow().webContents.toggleDevTools();
             return true;
         case "DEV_RELOAD":
             window.location.reload(true);
@@ -1044,7 +1179,7 @@ window.useAppShortcut = action => {
 };
 
 // Global keyboard shortcuts
-const globalShortcut = electron.remote.globalShortcut;
+const globalShortcut = remote.globalShortcut;
 globalShortcut.unregisterAll();
 
 window.registerKeyboardShortcuts = () => {
@@ -1106,7 +1241,7 @@ document.addEventListener("keydown", e => {
 // Fix #265
 window.addEventListener("keyup", e => {
     if (require("os").platform() === "win32" && e.key === "F4" && e.altKey === true) {
-        electron.remote.app.quit();
+        remote.app.quit();
     }
 });
 
@@ -1124,12 +1259,12 @@ window.onresize = () => {
 
 // See #413
 window.resizeTimeout = null;
-let electronWin = electron.remote.getCurrentWindow();
+let electronWin = remote.getCurrentWindow();
 electronWin.on("resize", () => {
     if (settings.keepGeometry === false) return;
     clearTimeout(window.resizeTimeout);
     window.resizeTimeout = setTimeout(() => {
-        let win = electron.remote.getCurrentWindow();
+        let win = remote.getCurrentWindow();
         if (win.isFullScreen()) return false;
         if (win.isMaximized()) {
             win.unmaximize();
@@ -1148,5 +1283,5 @@ electronWin.on("resize", () => {
 });
 
 electronWin.on("leave-full-screen", () => {
-    electron.remote.getCurrentWindow().setSize(960, 540);
+    remote.getCurrentWindow().setSize(960, 540);
 });
