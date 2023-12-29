@@ -45,56 +45,47 @@ class Netstat {
         this.geoLookup = {
             get: () => null
         };
-        let gopat="./geolite"
-        console.log(gopat)
-        let geolite2 = require(gopat);
-        console.log(geolite2)
+        let geolite2 = require("geolite2-redist");
         let maxmind = require("maxmind");
-        try{geolite2.downloadDbs(require("path").join("./", "geoIPcache")).then(() => {
-        
-        })}catch(err){
-            console.log(err)
-        }
-        
-        geolite2.open('GeoLite2-City', path => {
-            return maxmind.open(path);
-        }).catch(e => {throw e}).then(lookup => {
-            this.geoLookup = lookup;
-            this.lastconn.finished = true;
+        geolite2.downloadDbs(require("path").join(require("@electron/remote").app.getPath("userData"), "geoIPcache")).then(() => {
+           geolite2.open('GeoLite2-City', path => {
+                return maxmind.open(path);
+            }).catch(e => {throw e}).then(lookup => {
+                this.geoLookup = lookup;
+                this.lastconn.finished = true;
+            });
         });
     }
     updateInfo() {
-        window.si.networkInterfaces((error, data) => {
-            if (error) {
-                console.error("Erreur lors de la récupération des interfaces réseau :", error);
-                return;
-            }
-        
+        window.si.networkInterfaces().then(async data => {
             let offline = false;
+
             let net = data[0];
             let netID = 0;
-        
+
             if (typeof window.settings.iface === "string") {
                 while (net.iface !== window.settings.iface) {
                     netID++;
                     if (data[netID]) {
                         net = data[netID];
                     } else {
-                        // Aucune interface détectée n'a le nom iface personnalisé, revenir à la détection automatique
+                        // No detected interface has the custom iface name, fallback to automatic detection on next loop
                         window.settings.iface = false;
                         return false;
                     }
                 }
             } else {
+                // Find the first external, IPv4 connected networkInterface that has a MAC address set
+
                 while (net.operstate !== "up" || net.internal === true || net.ip4 === "" || net.mac === "") {
                     netID++;
                     if (data[netID]) {
                         net = data[netID];
                     } else {
-                        // Pas de connexion externe !
+                        // No external connection!
                         this.iface = null;
                         document.getElementById("mod_netstat_iname").innerText = "Interface: (offline)";
-        
+
                         this.offline = true;
                         document.querySelector("#mod_netstat_innercontainer > div:first-child > h2").innerHTML = "OFFLINE";
                         document.querySelector("#mod_netstat_innercontainer > div:nth-child(2) > h2").innerHTML = "--.--.--.--";
@@ -103,24 +94,18 @@ class Netstat {
                     }
                 }
             }
-        
+
             if (net.ip4 !== this.internalIPv4) this.runsBeforeGeoIPUpdate = 0;
-        
+
             this.iface = net.iface;
             this.internalIPv4 = net.ip4;
-            document.getElementById("mod_netstat_iname").innerText = "Interface: " + net.iface;
-        
+            document.getElementById("mod_netstat_iname").innerText = "Interface: "+net.iface;
+
             if (net.ip4 === "127.0.0.1") {
                 offline = true;
             } else {
                 if (this.runsBeforeGeoIPUpdate === 0 && this.lastconn.finished) {
-                    this.lastconn = require("https").get({
-                        host: "myexternalip.com",
-                        port: 443,
-                        path: "/json",
-                        localAddress: net.ip4,
-                        agent: this._httpsAgent
-                    }, res => {
+                    this.lastconn = require("https").get({host: "myexternalip.com", port: 443, path: "/json", localAddress: net.ip4, agent: this._httpsAgent}, res => {
                         let rawData = "";
                         res.on("data", chunk => {
                             rawData += chunk;
@@ -132,12 +117,12 @@ class Netstat {
                                     ip: data.ip,
                                     geo: this.geoLookup.get(data.ip).location
                                 };
-        
+
                                 let ip = this.ipinfo.ip;
                                 document.querySelector("#mod_netstat_innercontainer > div:nth-child(2) > h2").innerHTML = window._escapeHtml(ip);
-        
+
                                 this.runsBeforeGeoIPUpdate = 10;
-                            } catch (e) {
+                            } catch(e) {
                                 this.failedAttempts[e] = (this.failedAttempts[e] || 0) + 1;
                                 if (this.failedAttempts[e] > 2) return false;
                                 console.warn(e);
@@ -148,30 +133,25 @@ class Netstat {
                             }
                         });
                     }).on("error", e => {
-                        // Ignorer l'erreur
+                        // Drop it
                     });
                 } else if (this.runsBeforeGeoIPUpdate !== 0) {
                     this.runsBeforeGeoIPUpdate = this.runsBeforeGeoIPUpdate - 1;
                 }
-        
-                this.ping(window.settings.pingAddr || "1.1.1.1", 80, net.ip4)
-                    .then(p => {
-                        document.querySelector("#mod_netstat_innercontainer > div:first-child > h2").innerHTML = "ONLINE";
-                        document.querySelector("#mod_netstat_innercontainer > div:nth-child(3) > h2").innerHTML = Math.round(p) + "ms";
-                    })
-                    .catch(() => {
-                        offline = true;
-                    });
-        
+
+                let p = await this.ping(window.settings.pingAddr || "1.1.1.1", 80, net.ip4).catch(() => { offline = true });
+
                 this.offline = offline;
                 if (offline) {
                     document.querySelector("#mod_netstat_innercontainer > div:first-child > h2").innerHTML = "OFFLINE";
                     document.querySelector("#mod_netstat_innercontainer > div:nth-child(2) > h2").innerHTML = "--.--.--.--";
                     document.querySelector("#mod_netstat_innercontainer > div:nth-child(3) > h2").innerHTML = "--ms";
+                } else {
+                    document.querySelector("#mod_netstat_innercontainer > div:first-child > h2").innerHTML = "ONLINE";
+                    document.querySelector("#mod_netstat_innercontainer > div:nth-child(3) > h2").innerHTML = Math.round(p)+"ms";
                 }
             }
         });
-        
     }
     ping(target, port, local) {
         return new Promise((resolve, reject) => {
