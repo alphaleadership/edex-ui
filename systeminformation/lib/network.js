@@ -193,16 +193,15 @@ function getMacAddresses() {
   return result;
 }
 
-function networkInterfaceDefault(callback) {
-
+function networkInterfaceDefault() {
   return new Promise((resolve) => {
     process.nextTick(() => {
       let result = getDefaultNetworkInterface();
-      if (callback) { callback(result); }
       resolve(result);
     });
   });
 }
+
 
 exports.networkInterfaceDefault = networkInterfaceDefault;
 
