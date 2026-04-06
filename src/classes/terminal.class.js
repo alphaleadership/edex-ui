@@ -185,30 +185,17 @@ class Terminal {
                 } catch (error) {
                     console.error("Error attaching WebSocket addon:", error);
                 }
-
             };
-            this.term.onData(data => {
-                this.socket.send(data);
-                console.log("Sent to WebSocket:", data);
-                              this.term.refresh(0,this.term.rows-1);
-            });
+
             this.socket.onerror = e => {
                 console.error("WebSocket error:", e);
             };
-            this.socket.addEventListener("message", e => {
-                console.log("WebSocket message received:", e.data.toString());
-                // ... le reste du code ...
-                this.term.write(e.data)
-                this.term.refresh(0,this.term.rows-1);
-            });
-            
+
             this.write = cmd => {
-                console.log("Sending command:", cmd);
                 this.socket.send(cmd);
             };
-            this.term.onData(data => {
-                console.log("Terminal data received:", data);
-            });this.term.onBell(() => {
+
+            this.term.onBell(() => {
                 console.error("Terminal bell triggered.");
             });
                   
@@ -219,27 +206,28 @@ class Terminal {
             };
 
             this.lastSoundFX = Date.now();
-          
             
             this.socket.addEventListener("message", e => {
                 let d = Date.now();
 
+                // Sound FX for stdout
                 if (d - this.lastSoundFX > 30) {
                     if(window.passwordMode == "false")
                         window.audioManager.stdout.play();
                     this.lastSoundFX = d;
                 }
+                
                 if (d - this.lastRefit > 10000) {
                     this.fit();
                 }
 
-                // See #397
+                // Globe markers (See #397)
                 if (!window.settings.experimentalGlobeFeatures) return;
-                let ips = e.data.match(/((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/g);
+                let ips = e.data.toString().match(/((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/g);
                 if (ips !== null && ips.length >= 1) {
                     ips = ips.filter((val, index, self) => { return self.indexOf(val) === index; });
                     ips.forEach(ip => {
-                        window.mods.globe.addTemporaryConnectedMarker(ip);
+                        if (window.mods.globe) window.mods.globe.addTemporaryConnectedMarker(ip);
                     });
                 }
             });

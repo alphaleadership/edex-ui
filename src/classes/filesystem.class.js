@@ -210,8 +210,8 @@ class FilesystemDisplay {
                             e.category = "dir";
                             e.type = "dir";
                         }
-                        if (e.category === "dir" && tcwd === settingsDir && file === "themes") e.type="edex-themesDir";
-                        if (e.category === "dir" && tcwd === settingsDir && file === "keyboards") e.type = "edex-kblayoutsDir";
+                        if (e.category === "dir" && tcwd === window.settingsDir && file === "themes") e.type="edex-themesDir";
+                        if (e.category === "dir" && tcwd === window.settingsDir && file === "keyboards") e.type = "edex-kblayoutsDir";
 
                         if (fstat.isSymbolicLink()) {
                             e.category = "symlink";
@@ -228,10 +228,10 @@ class FilesystemDisplay {
                         e.hidden = true;
                     }
 
-                    if (e.category === "file" && tcwd === themesDir && file.endsWith(".json")) e.type = "edex-theme";
-                    if (e.category === "file" && tcwd === keyboardsDir && file.endsWith(".json")) e.type = "edex-kblayout";
-                    if (e.category === "file" && tcwd === settingsDir && file === "settings.json") e.type = "edex-settings";
-                    if (e.category === "file" && tcwd === settingsDir && file === "shortcuts.json") e.type = "edex-shortcuts";
+                    if (e.category === "file" && tcwd === window.themesDir && file.endsWith(".json")) e.type = "edex-theme";
+                    if (e.category === "file" && tcwd === window.keyboardsDir && file.endsWith(".json")) e.type = "edex-kblayout";
+                    if (e.category === "file" && tcwd === window.settingsDir && file === "settings.json") e.type = "edex-settings";
+                    if (e.category === "file" && tcwd === window.settingsDir && file === "shortcuts.json") e.type = "edex-shortcuts";
 
                     if (file.startsWith(".")) e.hidden = true;
 
