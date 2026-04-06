@@ -30,9 +30,57 @@ window._delay = ms => {
     });
 };
 
-// Initiate basic error handling
-window.onerror = (msg, path, line, col, error) => {
-    document.getElementById("boot_screen").innerHTML += `${error} :  ${msg}<br/>==> at ${path}  ${line}:${col}`;
+// Initiate advanced error handling
+window.onerror = (msg, url, line, col, error) => {
+    const stack = error ? error.stack : 'No stacktrace available';
+    const errorDetails = `
+        <div style="text-align: left; font-family: monospace; font-size: 12px; margin-top: 10px; padding: 10px; background: rgba(0,0,0,0.5); border: 1px solid var(--color_red); overflow: auto; max-height: 200px;">
+            <strong>Error:</strong> ${msg}<br/>
+            <strong>At:</strong> ${url}:${line}:${col}<br/><br/>
+            <strong>Stacktrace:</strong><br/>
+            ${stack.replace(/\n/g, '<br/>')}
+        </div>
+    `;
+
+    if (window.bootScreenActive !== false) {
+        const bootScreen = document.getElementById("boot_screen");
+        if (bootScreen) bootScreen.innerHTML += `<br/><span style="color: var(--color_red)">[FATAL] ${msg}</span>`;
+    }
+
+    if (typeof Modal !== "undefined") {
+        new Modal({
+            type: "error",
+            title: "Frontend Execution Error",
+            html: `An unexpected error occurred in the renderer process.${errorDetails}`
+        });
+    }
+
+    if (typeof ipc !== "undefined") {
+        ipc.send("log", "error", `Frontend Error: ${msg} at ${url}:${line}:${col}`);
+    }
+};
+
+window.onunhandledrejection = event => {
+    const reason = event.reason;
+    const msg = reason.message || reason;
+    const stack = reason.stack || 'No stacktrace available';
+
+    if (typeof Modal !== "undefined") {
+        new Modal({
+            type: "error",
+            title: "Unhandled Promise Rejection",
+            html: `A background task failed without proper error handling.<br/>
+            <div style="text-align: left; font-family: monospace; font-size: 12px; margin-top: 10px; padding: 10px; background: rgba(0,0,0,0.5); border: 1px solid var(--color_red); overflow: auto; max-height: 200px;">
+                <strong>Reason:</strong> ${msg}<br/><br/>
+                <strong>Stacktrace:</strong><br/>
+                ${stack.replace(/\n/g, '<br/>')}
+            </div>`
+        });
+    }
+
+    if (typeof ipc !== "undefined") {
+        ipc.send("log", "error", `Unhandled Rejection: ${msg}\n${stack}`);
+    }
 };
 
 const path = require("path");

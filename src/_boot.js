@@ -16,20 +16,27 @@ const innerKblayoutsDir = path.join(__dirname, "assets/kb_layouts");
 const fontsDir = path.join(configDir, "fonts");
 const innerFontsDir = path.join(__dirname, "assets/fonts");
 
+// Enhanced Error Handling
+const reportError = (error, type = "Fatal Error") => {
+    const errorMessage = error.stack || error.message || error;
+    const systemInfo = `\n\n--- System Info ---\neDEX v${app.getVersion()}\nElectron v${process.versions.electron}\nNode v${process.versions.node}\nPlatform: ${process.platform}\nArch: ${process.arch}\n------------------`;
+    
+    signale.fatal(`${type}: ${errorMessage}${systemInfo}`);
+    
+    if (app.isReady()) {
+        dialog.showErrorBox(`eDEX-UI ${type}`, `${error.message || error}\n\nCheck logs for more details.${systemInfo}`);
+    }
+};
+
 process.on("uncaughtException", e => {
-    signale.fatal(e);
-    dialog.showErrorBox("eDEX-UI crashed", e.message || "Cannot retrieve error message.");
-    if (tty) {
-        tty.close();
-    }
-    if (extraTtys) {
-        Object.keys(extraTtys).forEach(key => {
-            if (extraTtys[key] !== null) {
-                extraTtys[key].close();
-            }
-        });
-    }
-    process.exit(1);
+    reportError(e, "Uncaught Exception");
+    if (tty) tty.close();
+    // Allow some time for logs to be written
+    setTimeout(() => process.exit(1), 500);
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+    reportError(reason, "Unhandled Promise Rejection");
 });
 
 signale.start(`Starting eDEX-UI v${app.getVersion()}`);
