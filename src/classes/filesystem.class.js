@@ -210,8 +210,8 @@ class FilesystemDisplay {
                             e.category = "dir";
                             e.type = "dir";
                         }
-                        if (e.category === "dir" && tcwd === settingsDir && file === "themes") e.type="edex-themesDir";
-                        if (e.category === "dir" && tcwd === settingsDir && file === "keyboards") e.type = "edex-kblayoutsDir";
+                        if (e.category === "dir" && tcwd === window.settingsDir && file === "themes") e.type="edex-themesDir";
+                        if (e.category === "dir" && tcwd === window.settingsDir && file === "keyboards") e.type = "edex-kblayoutsDir";
 
                         if (fstat.isSymbolicLink()) {
                             e.category = "symlink";
@@ -228,10 +228,10 @@ class FilesystemDisplay {
                         e.hidden = true;
                     }
 
-                    if (e.category === "file" && tcwd === themesDir && file.endsWith(".json")) e.type = "edex-theme";
-                    if (e.category === "file" && tcwd === keyboardsDir && file.endsWith(".json")) e.type = "edex-kblayout";
-                    if (e.category === "file" && tcwd === settingsDir && file === "settings.json") e.type = "edex-settings";
-                    if (e.category === "file" && tcwd === settingsDir && file === "shortcuts.json") e.type = "edex-shortcuts";
+                    if (e.category === "file" && tcwd === window.themesDir && file.endsWith(".json")) e.type = "edex-theme";
+                    if (e.category === "file" && tcwd === window.keyboardsDir && file.endsWith(".json")) e.type = "edex-kblayout";
+                    if (e.category === "file" && tcwd === window.settingsDir && file === "settings.json") e.type = "edex-settings";
+                    if (e.category === "file" && tcwd === window.settingsDir && file === "shortcuts.json") e.type = "edex-shortcuts";
 
                     if (file.startsWith(".")) e.hidden = true;
 
@@ -328,14 +328,25 @@ class FilesystemDisplay {
 
                 if (!this._noTracking) {
                     if (e.type === "dir" || e.type.endsWith("Dir")) {
-                        cmd = `window.term[window.currentTerm].writelr("cd \\""+fsDisp.cwd[${blockIndex}].name+"\\"")`;
-                    } else if (e.type === "up") {
-                        cmd = `window.term[window.currentTerm].writelr("cd ..")`;
-                    } else if (e.type === "disk" || e.type === "rom" || e.type === "usb") {
+                        let absolutePath = fsDisp.cwd[blockIndex].path.replace(/\\/g, "/");
                         if (process.platform === "win32") {
-                            cmd = `window.term[window.currentTerm].writelr("${e.path.replace(/\\/g, '')}")`;
+                            cmd = `window.term[window.currentTerm].writelr("cd /d \\"${absolutePath}\\"")`;
                         } else {
-                            cmd = `window.term[window.currentTerm].writelr("cd \\"${e.path.replace(/\\/g, '')}\\"")`;
+                            cmd = `window.term[window.currentTerm].writelr("cd \\"${absolutePath}\\"")`;
+                        }
+                    } else if (e.type === "up") {
+                        let parentPath = path.resolve(this.dirpath, "..").replace(/\\/g, "/");
+                        if (process.platform === "win32") {
+                            cmd = `window.term[window.currentTerm].writelr("cd /d \\"${parentPath}\\"")`;
+                        } else {
+                            cmd = `window.term[window.currentTerm].writelr("cd \\"${parentPath}\\"")`;
+                        }
+                    } else if (e.type === "disk" || e.type === "rom" || e.type === "usb") {
+                        let drivePath = e.path.replace(/\\/g, "/");
+                        if (process.platform === "win32") {
+                            cmd = `window.term[window.currentTerm].writelr("cd /d \\"${drivePath}\\"")`;
+                        } else {
+                            cmd = `window.term[window.currentTerm].writelr("cd \\"${drivePath}\\"")`;
                         }
                     } else {
                         cmd = `window.term[window.currentTerm].write("\\""+fsDisp.cwd[${blockIndex}].path+"\\"")`;
@@ -346,7 +357,7 @@ class FilesystemDisplay {
                     } else if (e.type === "up") {
                         cmd = `window.fsDisp.readFS(path.resolve(window.fsDisp.dirpath, ".."))`;
                     } else if (e.type === "disk" || e.type === "rom" || e.type === "usb") {
-                        cmd = `window.fsDisp.readFS("${e.path.replace(/\\/g, '')}")`;
+                        cmd = `window.fsDisp.readFS("${e.path.replace(/\\/g, '/')}")`;
                     } else {
                         cmd = `window.term[window.currentTerm].write("\\""+fsDisp.cwd[${blockIndex}].path+"\\"")`;
                     }

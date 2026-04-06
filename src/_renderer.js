@@ -1,5 +1,5 @@
-// Disable eval()settingsDir
-const os = require("../systeminformation");
+// Disable eval()
+const os = require("systeminformation");
 window.eval = global.eval = function () {
     throw new Error("eval() is disabled for security reasons.");
 };
@@ -41,27 +41,27 @@ const electron = require("electron");
 const remote = require("@electron/remote");
 const ipc = electron.ipcRenderer;
 
-function replacer(arg){
-    return path.normalize(path.resolve(path.join(...arguments)))
-}
-ipc.send("log","info",path.resolve("./"))
-const themesDir = replacer("./", "themes");
-const keyboardsDir = replacer("./", "keyboards");
-const fontsDir = replacer("./", "fonts");
-const settingsFile = replacer("./", "settings.json");
-const shortcutsFile = replacer("./", "shortcuts.json");
-const lastWindowStateFile = replacer("./", "lastWindowState.json");
-const settingsDir="./"
+const isDev = !remote.app.isPackaged;
+const configDir = isDev ? __dirname : remote.app.getPath('userData');
+window.settingsDir = configDir;
+
+window.themesDir = path.join(configDir, "themes");
+window.keyboardsDir = path.join(configDir, "keyboards");
+window.fontsDir = path.join(configDir, "fonts");
+window.settingsFile = path.join(configDir, "settings.json");
+window.shortcutsFile = path.join(configDir, "shortcuts.json");
+window.lastWindowStateFile = path.join(configDir, "lastWindowState.json");
+
 // Load config
 try{
-    window.settings = require(settingsFile);
-    window.shortcuts = require(shortcutsFile);
-    window.lastWindowState = require(lastWindowStateFile);
+    window.settings = require(window.settingsFile);
+    window.shortcuts = require(window.shortcutsFile);
+    window.lastWindowState = require(window.lastWindowStateFile);
 }catch(error){
     window.settings = {
-        "shell": "powershell.exe",
+        "shell": (process.platform === "win32") ? "powershell.exe" : "bash",
         "shellArgs": "",
-        "cwd": "D:\\edex-ui-master\\edex-ui\\src",
+        "cwd": configDir,
         "keyboard": "en-US",
         "theme": "tron",
         "termFontSize": 15,
@@ -191,9 +191,9 @@ ipc.once("getThemeOverride", (e, theme) => {
     if (theme !== null) {
         window.settings.theme = theme;
         window.settings.nointroOverride = true;
-        _loadTheme(require(replacer("./",themesDir, window.settings.theme+".json")));
+        _loadTheme(require(path.join(themesDir, window.settings.theme+".json")));
     } else {
-        _loadTheme(require(replacer("./",themesDir, window.settings.theme+".json")));
+        _loadTheme(require(path.join(themesDir, window.settings.theme+".json")));
     }
 });
 ipc.send("getThemeOverride");
@@ -214,9 +214,9 @@ window._loadTheme = theme => {
     }
 
     // Load fonts
-    let mainFont = new FontFace(theme.cssvars.font_main, `url("${replacer(fontsDir, theme.cssvars.font_main.toLowerCase().replace(/ /g, '_')+'.woff2').replace(/\\/g, '/')}")`);
-    let lightFont = new FontFace(theme.cssvars.font_main_light, `url("${replacer(fontsDir, theme.cssvars.font_main_light.toLowerCase().replace(/ /g, '_')+'.woff2').replace(/\\/g, '/')}")`);
-    let termFont = new FontFace(theme.terminal.fontFamily, `url("${replacer(fontsDir, theme.terminal.fontFamily.toLowerCase().replace(/ /g, '_')+'.woff2').replace(/\\/g, '/')}")`);
+    let mainFont = new FontFace(theme.cssvars.font_main, `url("${path.join(fontsDir, theme.cssvars.font_main.toLowerCase().replace(/ /g, '_')+'.woff2').replace(/\\/g, '/')}")`);
+    let lightFont = new FontFace(theme.cssvars.font_main_light, `url("${path.join(fontsDir, theme.cssvars.font_main_light.toLowerCase().replace(/ /g, '_')+'.woff2').replace(/\\/g, '/')}")`);
+    let termFont = new FontFace(theme.terminal.fontFamily, `url("${path.join(fontsDir, theme.terminal.fontFamily.toLowerCase().replace(/ /g, '_')+'.woff2').replace(/\\/g, '/')}")`);
 
     document.fonts.add(mainFont);
     document.fonts.load("12px "+theme.cssvars.font_main);
@@ -355,7 +355,7 @@ if (window.settings.nointro || window.settings.nointroOverride) {
 // Startup boot log
 function displayLine() {
     let bootScreen = document.getElementById("boot_screen");
-    let log = fs.readFileSync(replacer(__dirname, "assets", "misc", "boot_log.txt")).toString().split('\n');
+    let log = fs.readFileSync(path.join(__dirname, "assets", "misc", "boot_log.txt")).toString().split('\n');
 
     function isArchUser() {
         return require("os").platform() === "linux"
@@ -464,7 +464,7 @@ async function displayTitleScreen() {
 
 // Returns the user's desired display name
 async function getDisplayName() {
-    let user = settings.username || null;
+    let user = window.settings.username || null;
     if (user)
         return user;
 
@@ -507,7 +507,7 @@ async function initUI() {
     <section id="keyboard" style="opacity:0;">
     </section>`;
     window.keyboard = new Keyboard({
-        layout: replacer(keyboardsDir, settings.keyboard+".json"),
+        layout: path.join(keyboardsDir, window.settings.keyboard+".json"),
         container: "keyboard"
     });
 
@@ -654,7 +654,7 @@ window.themeChanger = theme => {
 window.remakeKeyboard = layout => {
     document.getElementById("keyboard").innerHTML = "";
     window.keyboard = new Keyboard({
-        layout: replacer(keyboardsDir, layout+".json" || settings.keyboard+".json"),
+        layout: path.join(keyboardsDir, layout+".json" || window.settings.keyboard+".json"),
         container: "keyboard"
     });
     ipc.send("setKbOverride", layout);
@@ -741,7 +741,7 @@ window.openSettings = async () => {
     for (let i = 0; i < remote.screen.getAllDisplays().length; i++) {
         if (i !== window.settings.monitor) monitors += `<option>${i}</option>`;
     }
-    let nets = await window.networkInterfaces();
+    let nets = await window.si.networkInterfaces();
     nets.forEach(net => {
         if (net.iface !== window.mods.netstat.iface) ifaces += `<option>${net.iface}</option>`;
     });

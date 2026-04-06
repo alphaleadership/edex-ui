@@ -1,7 +1,7 @@
 {
     "shell": "cmd.exe",
     "shellArgs": "",
-    "cwd": "D:\\edex-ui-master\\edex-ui\\src",
+    "cwd": ".",
     "keyboard": "en-US",
     "theme": "matrix",
     "termFontSize": 15,

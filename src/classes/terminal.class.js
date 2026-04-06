@@ -11,7 +11,7 @@ class Terminal {
             this.Ipc = require("electron").ipcRenderer;
 
             this.port = opts.port || 3000;
-            this.cwd = "";
+            this.cwd = opts.cwd || "";
             this.oncwdchange = () => {};
 
             this._sendSizeToServer = () => {
@@ -185,30 +185,17 @@ class Terminal {
                 } catch (error) {
                     console.error("Error attaching WebSocket addon:", error);
                 }
-
             };
-            this.term.onData(data => {
-                this.socket.send(data);
-                console.log("Sent to WebSocket:", data);
-                              this.term.refresh(0,this.term.rows-1);
-            });
+
             this.socket.onerror = e => {
                 console.error("WebSocket error:", e);
             };
-            this.socket.addEventListener("message", e => {
-                console.log("WebSocket message received:", e.data.toString());
-                // ... le reste du code ...
-                this.term.write(e.data)
-                this.term.refresh(0,this.term.rows-1);
-            });
-            
+
             this.write = cmd => {
-                console.log("Sending command:", cmd);
                 this.socket.send(cmd);
             };
-            this.term.onData(data => {
-                console.log("Terminal data received:", data);
-            });this.term.onBell(() => {
+
+            this.term.onBell(() => {
                 console.error("Terminal bell triggered.");
             });
                   
@@ -219,27 +206,28 @@ class Terminal {
             };
 
             this.lastSoundFX = Date.now();
-          
             
             this.socket.addEventListener("message", e => {
                 let d = Date.now();
 
+                // Sound FX for stdout
                 if (d - this.lastSoundFX > 30) {
                     if(window.passwordMode == "false")
                         window.audioManager.stdout.play();
                     this.lastSoundFX = d;
                 }
+                
                 if (d - this.lastRefit > 10000) {
                     this.fit();
                 }
 
-                // See #397
+                // Globe markers (See #397)
                 if (!window.settings.experimentalGlobeFeatures) return;
-                let ips = e.data.match(/((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/g);
+                let ips = e.data.toString().match(/((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/g);
                 if (ips !== null && ips.length >= 1) {
                     ips = ips.filter((val, index, self) => { return self.indexOf(val) === index; });
                     ips.forEach(ip => {
-                        window.mods.globe.addTemporaryConnectedMarker(ip);
+                        if (window.mods.globe) window.mods.globe.addTemporaryConnectedMarker(ip);
                     });
                 }
             });
@@ -369,8 +357,13 @@ class Terminal {
                                 }
                             });
                             break;
+                        case "Windows_NT":
+                            // On Windows, retrieving the CWD of a remote process reliably via CLI is difficult.
+                            // We return the last known CWD to avoid jumping to the wrong directory (like System32).
+                            resolve(this.tty._cwd || opts.cwd || process.env.USERPROFILE || process.cwd());
+                            break;
                         default:
-                            resolve(process.cwd())
+                            resolve(opts.cwd || process.cwd())
                     }
                 });
             };

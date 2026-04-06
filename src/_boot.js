@@ -3,14 +3,17 @@ const {app, BrowserWindow, dialog, shell} = require("electron");
 const path = require("path");
 const url = require("url");
 const fs = require("fs");
-const settingsFile = path.join(__dirname, "settings.json");
-const shortcutsFile = path.join(__dirname, "shortcuts.json");
-const lastWindowStateFile = path.join(__dirname, "lastWindowState.json");
-const themesDir = path.join(__dirname, "themes");
+const isDev = !app.isPackaged;
+const configDir = isDev ? __dirname : app.getPath('userData');
+
+const settingsFile = path.join(configDir, "settings.json");
+const shortcutsFile = path.join(configDir, "shortcuts.json");
+const lastWindowStateFile = path.join(configDir, "lastWindowState.json");
+const themesDir = path.join(configDir, "themes");
 const innerThemesDir = path.join(__dirname, "assets/themes");
-const kblayoutsDir = path.join(__dirname, "keyboards");
+const kblayoutsDir = path.join(configDir, "keyboards");
 const innerKblayoutsDir = path.join(__dirname, "assets/kb_layouts");
-const fontsDir = path.join(__dirname, "fonts");
+const fontsDir = path.join(configDir, "fonts");
 const innerFontsDir = path.join(__dirname, "assets/fonts");
 
 process.on("uncaughtException", e => {
@@ -35,17 +38,17 @@ signale.info(`Renderer is Chrome ${process.versions.chrome}`);
 
 // Fix userData folder not setup on Windows
 try {
-    fs.mkdirSync(__dirname);
-    signale.info(`Created config dir at ${__dirname}`);
+    fs.mkdirSync(configDir, { recursive: true });
+    signale.info(`Created config dir at ${configDir}`);
 } catch(e) {
-    signale.info(`Base config dir is ${__dirname}`);
+    signale.info(`Base config dir is ${configDir}`);
 }
 // Create default settings file
 if (!fs.existsSync(settingsFile)) {
     fs.writeFileSync(settingsFile, JSON.stringify({
         shell: (process.platform === "win32") ? "powershell.exe" : "bash",
         shellArgs: '',
-        cwd: __dirname,
+        cwd: app.getPath('home'),
         keyboard: "en-US",
         theme: "tron",
         termFontSize: 15,
@@ -228,10 +231,22 @@ app.on('ready', async () => {
     signale.info(`Shell found at ${settings.shell}`);
     signale.success(`Settings loaded!`);
 
-    if (!require("fs").existsSync(settings.cwd)) throw new Error("Configured cwd path does not exist.");
+    // Sanitize CWD
+    if (!settings.cwd || settings.cwd === "." || settings.cwd.includes(".asar")) {
+        settings.cwd = app.getPath('home');
+    }
+    
+    // Ensure absolute path
+    settings.cwd = path.resolve(settings.cwd);
+
+    if (!require("fs").existsSync(settings.cwd)) {
+        settings.cwd = app.getPath('home');
+    }
+
+    signale.info(`Startup CWD: ${settings.cwd}`);
 
     // See #366
-    let cleanEnv = await require("../shellenv").shellEnvSync(settings.shell)
+    let cleanEnv = await require("./shellenv").shellEnvSync(settings.shell)
 
     Object.assign(cleanEnv, {
         TERM: "xterm-256color",
