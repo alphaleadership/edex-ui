@@ -53,7 +53,7 @@ try {
 // Create default settings file
 if (!fs.existsSync(settingsFile)) {
     fs.writeFileSync(settingsFile, JSON.stringify({
-        shell: (process.platform === "win32") ? "powershell.exe" : "bash",
+        shell: (process.platform === "win32") ? "cmd.exe" : "bash",
         shellArgs: '',
         cwd: app.getPath('home'),
         keyboard: "en-US",

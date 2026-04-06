@@ -107,7 +107,7 @@ try{
     window.lastWindowState = require(window.lastWindowStateFile);
 }catch(error){
     window.settings = {
-        "shell": (process.platform === "win32") ? "powershell.exe" : "bash",
+        "shell": (process.platform === "win32") ? "cmd.exe" : "bash",
         "shellArgs": "",
         "cwd": configDir,
         "keyboard": "en-US",
