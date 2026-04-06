@@ -39,11 +39,18 @@ class RAMwatcher {
         if (this.currentlyUpdating) return;
         this.currentlyUpdating = true;
         window.si.mem().then(data => {
-            if (data.free+data.used !== data.total) throw("RAM Watcher Error: Bad memory values");
+            if (!data || !data.total) {
+                this.currentlyUpdating = false;
+                return;
+            }
 
             // Convert the data for the 440-points grid
-            let active = Math.round((440*data.active)/data.total);
-            let available = Math.round((440*(data.available-data.free))/data.total);
+            let active = Math.round((440 * (data.active || 0)) / data.total);
+            let available = Math.round((440 * Math.max(0, (data.available || 0) - (data.free || 0))) / data.total);
+
+            // Ensure we don't exceed 440 points
+            active = Math.min(440, active);
+            available = Math.min(440 - active, available);
 
             // Update grid
             this.points.slice(0, active).forEach(domPoint => {
@@ -63,17 +70,25 @@ class RAMwatcher {
             });
 
             // Update info text
-            let totalGiB = Math.round((data.total/1073742000)*10)/10; // 1073742000 bytes = 1 Gibibyte (GiB), the *10 is to round to .1 decimal
-            let usedGiB = Math.round((data.active/1073742000)*10)/10;
+            let totalGiB = Math.round((data.total/1073741824)*10)/10; // 1073741824 bytes = 1 GiB
+            let usedGiB = Math.round(((data.active || 0)/1073741824)*10)/10;
             document.getElementById("mod_ramwatcher_info").innerText = `USING ${usedGiB} OUT OF ${totalGiB} GiB`;
 
             // Update swap indicator
-            let usedSwap = Math.round((100*data.swapused)/data.swaptotal);
-            document.getElementById("mod_ramwatcher_swapbar").value = usedSwap || 0;
+            if (data.swaptotal > 0) {
+                let usedSwap = Math.round((100 * (data.swapused || 0)) / data.swaptotal);
+                document.getElementById("mod_ramwatcher_swapbar").value = usedSwap || 0;
 
-            let usedSwapGiB = Math.round((data.swapused/1073742000)*10)/10;
-            document.getElementById("mod_ramwatcher_swaptext").innerText = `${usedSwapGiB} GiB`;
+                let usedSwapGiB = Math.round(((data.swapused || 0)/1073741824)*10)/10;
+                document.getElementById("mod_ramwatcher_swaptext").innerText = `${usedSwapGiB} GiB`;
+            } else {
+                document.getElementById("mod_ramwatcher_swapbar").value = 0;
+                document.getElementById("mod_ramwatcher_swaptext").innerText = "0.0 GiB";
+            }
 
+            this.currentlyUpdating = false;
+        }).catch(err => {
+            console.error("RAM Watcher failed to update:", err);
             this.currentlyUpdating = false;
         });
     }
