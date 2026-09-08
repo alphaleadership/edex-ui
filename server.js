@@ -4,6 +4,8 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const express = require('express');
 const WebSocket = require('ws');
+const crypto = require('crypto');
+const { URL } = require('url');
 const { Terminal } = require('./src/classes/terminal.class.js');
 settings={
     "shell": "powershell.exe",
@@ -29,13 +31,15 @@ settings={
     "experimentalFeatures": false
 }
 let cleanEnv =  require("../edex-ui/shellenv").shellEnvSync(settings.shell)
+const AUTH_TOKEN = process.env.TERMINAL_WS_TOKEN || crypto.randomBytes(32).toString('hex');
 opts={
     role: "server",
     shell: settings.shell,
     params: settings.shellArgs || '',
     cwd: settings.cwd,
     env: cleanEnv,
-    port: settings.port || 3000
+    port: settings.port || 3000,
+    authToken: AUTH_TOKEN
 }
 let mainWindow;
 let expressApp;
@@ -77,6 +81,7 @@ app.whenReady().then(() => {
     // Lancer le serveur Express
     const server = expressApp.listen(port, () => {
         console.log(`Serveur Express en cours d'exécution sur http://localhost:${port}`);
+        console.log(`Terminal WebSocket token: ${AUTH_TOKEN}`);
     });
 
     // Créer un serveur WebSocket
@@ -84,6 +89,13 @@ app.whenReady().then(() => {
 
     // Attacher le serveur WebSocket au serveur HTTP
     server.on('upgrade', (request, socket, head) => {
+        const reqUrl = new URL(request.url, `http://${request.headers.host}`);
+        const token = reqUrl.searchParams.get('token');
+        if (token !== AUTH_TOKEN) {
+            socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+            socket.destroy();
+            return;
+        }
         wsServer.handleUpgrade(request, socket, head, (ws) => {
             wsServer.emit('connection', ws, request);
         });

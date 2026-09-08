@@ -503,7 +503,21 @@ class Terminal {
                         return;
                 }
             });
-            this.wss.on("connection", ws => {
+            this.wss.on("connection", (ws, request) => {
+                if (opts.authToken) {
+                    try {
+                        const { URL } = require("url");
+                        const reqUrl = new URL(request.url, "http://localhost");
+                        const token = reqUrl.searchParams.get("token");
+                        if (token !== opts.authToken) {
+                            ws.close(1008, "Unauthorized");
+                            return;
+                        }
+                    } catch (e) {
+                        ws.close(1008, "Unauthorized");
+                        return;
+                    }
+                }
                 this.onopened(this.tty._pid);
                 ws.on("close", (code, reason) => {
                     this.ondisconnected(code, reason);
