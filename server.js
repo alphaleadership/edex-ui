@@ -104,6 +104,14 @@ app.whenReady().then(() => {
     // Créer une instance de la classe Terminal côté serveur
     terminalServer = new Terminal(opts);
 
+    function sanitizeTerminalInput(input) {
+        const text = Buffer.isBuffer(input) ? input.toString('utf8') : String(input);
+        if (text.length === 0 || text.length > 4096) return null;
+        const allowed = /^[\x09\x0A\x0D\x1B\x08\x20-\x7E]*$/;
+        if (!allowed.test(text)) return null;
+        return text;
+    }
+
     // Gérer les événements IPC depuis la fenêtre de rendu
     ipcMain.on('express-port-request', (event) => {
         // Envoyer le numéro de port Express au client côté rendu
@@ -113,8 +121,12 @@ app.whenReady().then(() => {
     // Gérer les connexions WebSocket du terminal
     wsServer.on('connection', (ws) => {
         ws.on('message', (message) => {
+            const safeMessage = sanitizeTerminalInput(message);
+            if (safeMessage === null) {
+                return;
+            }
             // Rediriger les messages du terminal depuis le front-end vers le back-end
-            terminalServer.write(message);
+            terminalServer.write(safeMessage);
         });
 
         // Envoyer les données du terminal depuis le back-end vers le front-end
