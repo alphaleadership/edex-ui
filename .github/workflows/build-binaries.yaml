@@ -42,7 +42,7 @@ jobs:
       run: ./node_modules/.bin/electron-builder build -l --x64 --ia32
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v4
       with:
         name: Linux-AppImages
         path: dist/*.AppImage
@@ -81,7 +81,7 @@ jobs:
         args: bash -c "npm i -g npm@7 && npm install && ./node_modules/.bin/electron-builder build -l --armv7l"
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v4
       with:
         name: Linux-arm32-AppImage
         path: dist/*.AppImage
@@ -120,7 +120,7 @@ jobs:
         args: bash -c "npm i -g npm@7 && npm install && ./node_modules/.bin/electron-builder build -l --arm64"
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v4
       with:
         name: Linux-arm64-AppImage
         path: dist/*.AppImage
@@ -159,7 +159,7 @@ jobs:
       run: npm run build-windows
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v4
       with:
         name: Windows-Installer
         path: dist/*.exe
@@ -198,7 +198,7 @@ jobs:
       run: npm run build-darwin
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v4
       with:
         name: MacOS-Image
         path: dist/*.dmg
