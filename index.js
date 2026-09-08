@@ -65,6 +65,15 @@ const path = require('path');
 const WebSocket = require('ws');
 const pty = require('node-pty');
 
+function sanitizeTerminalInput(input) {
+    const text = Buffer.isBuffer(input) ? input.toString('utf8') : String(input);
+    if (text.length === 0 || text.length > 4096) return null;
+    // Allow printable chars + common terminal controls + ANSI escape sequences.
+    const allowed = /^[\x09\x0A\x0D\x1B\x08\x20-\x7E]*$/;
+    if (!allowed.test(text)) return null;
+    return text;
+}
+
 const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
@@ -87,8 +96,12 @@ const ptyProcess = pty.spawn(shell, [], {
 wss.on('connection', (ws) => {
     // Gérez les données entrantes du client et écrivez-les dans le processus pty
     ws.on('message', (data) => {
-        console.log(data)
-        ptyProcess.write(data);
+        const safeData = sanitizeTerminalInput(data);
+        if (safeData === null) {
+            return;
+        }
+        console.log(safeData)
+        ptyProcess.write(safeData);
         ptyProcess.resume
     });
 
