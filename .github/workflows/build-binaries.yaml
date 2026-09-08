@@ -31,7 +31,7 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v1
       with:
-        node-version: 14
+        node-version: 26
     - name: Setup npm
       run: sudo npm i -g npm@7
     - name: Install build deps
@@ -150,7 +150,7 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v1
       with:
-        node-version: 14
+        node-version: 26
     - name: Setup npm
       run: npm i -g npm@7
     - name: npm install
@@ -189,7 +189,7 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v1
       with:
-        node-version: 14
+        node-version: 26
     - name: Setup npm
       run: sudo npm i -g npm@7
     - name: npm install
