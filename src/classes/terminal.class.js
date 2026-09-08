@@ -509,8 +509,24 @@ class Terminal {
                     this.ondisconnected(code, reason);
                 });
                 ws.on("message", msg => {
-                    console.log(msg.toString())
-                    this.tty.write(msg);
+                    const MAX_INPUT_SIZE = 8192;
+                    let safeInput;
+
+                    if (Buffer.isBuffer(msg)) {
+                        if (msg.length > MAX_INPUT_SIZE) return;
+                        safeInput = msg.toString("utf8");
+                    } else if (typeof msg === "string") {
+                        if (Buffer.byteLength(msg, "utf8") > MAX_INPUT_SIZE) return;
+                        safeInput = msg;
+                    } else {
+                        return;
+                    }
+
+                    // Block non-interactive control bytes frequently abused in injected streams.
+                    if (/[\x00\x04]/.test(safeInput)) return;
+
+                    console.log(safeInput);
+                    this.tty.write(safeInput);
                 });
                 this.tty.onData(data => {
                     this._nextTickUpdateTtyCWD = true;
