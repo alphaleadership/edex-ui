@@ -8,7 +8,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Cache node modules
-      uses: actions/cache@v2
+      uses: actions/cache@v4
       env:
         cache-name: cache-node-modules
       with:
@@ -16,7 +16,7 @@ jobs:
         path: ~/.npm
         key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
     - name: Cache Electron binaries
-      uses: actions/cache@v2
+      uses: actions/cache@v4
       env:
         cache-name: cache-electron-bins
       with:
@@ -57,7 +57,7 @@ jobs:
       with:
         platforms: arm
     - name: Cache node modules
-      uses: actions/cache@v2
+      uses: actions/cache@v4
       env:
         cache-name: cache-node-modules
       with:
@@ -65,7 +65,7 @@ jobs:
         path: ~/.npm
         key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
     - name: Cache Electron binaries
-      uses: actions/cache@v2
+      uses: actions/cache@v4
       env:
         cache-name: cache-electron-bins
       with:
@@ -96,7 +96,7 @@ jobs:
       with:
         platforms: arm64
     - name: Cache node modules
-      uses: actions/cache@v2
+      uses: actions/cache@v4
       env:
         cache-name: cache-node-modules
       with:
@@ -104,7 +104,7 @@ jobs:
         path: ~/.npm
         key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
     - name: Cache Electron binaries
-      uses: actions/cache@v2
+      uses: actions/cache@v4
       env:
         cache-name: cache-electron-bins
       with:
@@ -134,12 +134,12 @@ jobs:
       id: npm-cache
       run: |
         echo "::set-output name=dir::$(npm config get cache)"
-    - uses: actions/cache@v2
+    - uses: actions/cache@v4
       with:
         path: ${{ steps.npm-cache.outputs.dir }}
         key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
     - name: Cache Electron binaries
-      uses: actions/cache@v2
+      uses: actions/cache@v4
       env:
         cache-name: cache-electron-bins
       with:
@@ -170,7 +170,7 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: Cache node modules
-      uses: actions/cache@v2
+      uses: actions/cache@v4
       env:
         cache-name: cache-node-modules
       with:
@@ -178,7 +178,7 @@ jobs:
         path: ~/.npm
         key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
     - name: Cache Electron binaries
-      uses: actions/cache@v2
+      uses: actions/cache@v4
       env:
         cache-name: cache-electron-bins
       with:
