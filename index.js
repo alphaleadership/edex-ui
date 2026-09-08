@@ -69,7 +69,7 @@ function sanitizeTerminalInput(input) {
     const text = Buffer.isBuffer(input) ? input.toString('utf8') : String(input);
     if (text.length === 0 || text.length > 4096) return null;
     // Allow printable chars + common terminal controls + ANSI escape sequences.
-    const allowed = /^[\x09\x0A\x0D\x1B\x08\x20-\x7E]*$/;
+    const allowed = /^(?:[\x01-\x1F\x20-\x7E]|\p{L}|\p{M}|\p{N}|\p{P}|\p{S}|\p{Zs})*$/u;
     if (!allowed.test(text)) return null;
     return text;
 }
