@@ -58,7 +58,7 @@ reviews:
     unit_tests:
       enabled: true
     simplify:
-      enabled: false
+      enabled: true
     autofix:
       enabled: true
     fix_ci:
@@ -67,7 +67,7 @@ reviews:
       enabled: true
     custom: []
   pre_merge_checks:
-    override_requested_reviewers_only: false
+    override_requested_reviewers_only: true
     docstrings:
       mode: warning
       threshold: 80
@@ -246,7 +246,7 @@ knowledge_base:
     usage: auto
     disabled_servers: []
   automatic_linking_mode: disabled
-  automatic_repository_linking: false
+  automatic_repository_linking: true
   linked_repositories: []
 code_generation:
   docstrings:
@@ -256,7 +256,7 @@ code_generation:
     path_instructions: []
 issue_enrichment:
   auto_enrich:
-    enabled: false
+    enabled: true
   planning:
     enabled: true
     auto_planning:
@@ -264,4 +264,4 @@ issue_enrichment:
       labels: []
   labeling:
     labeling_instructions: []
-    auto_apply_labels: false
+    auto_apply_labels: true
