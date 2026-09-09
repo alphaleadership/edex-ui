@@ -16,6 +16,7 @@
 const fs = require('fs');
 const exec = require('child_process').exec;
 const execSync = require('child_process').execSync;
+const execFileSync = require('child_process').execFileSync;
 const util = require('./util');
 
 let _platform = process.platform;
@@ -419,10 +420,9 @@ function graphics(callback) {
     const nvidiaSmiExe = getNvidiaSmi();
     options = options || util.execOptsWin;
     if (nvidiaSmiExe) {
-      const nvidiaSmiOpts = '--query-gpu=driver_version,pci.sub_device_id,name,pci.bus_id,fan.speed,memory.total,memory.used,memory.free,utilization.gpu,utilization.memory,temperature.gpu,temperature.memory,power.draw,power.limit,clocks.gr,clocks.mem --format=csv,noheader,nounits';
-      const cmd = nvidiaSmiExe + ' ' + nvidiaSmiOpts + (_linux ? '  2>/dev/null' : '');
+      const nvidiaSmiArgs = ['--query-gpu=driver_version,pci.sub_device_id,name,pci.bus_id,fan.speed,memory.total,memory.used,memory.free,utilization.gpu,utilization.memory,temperature.gpu,temperature.memory,power.draw,power.limit,clocks.gr,clocks.mem', '--format=csv,noheader,nounits'];
       try {
-        const res = execSync(cmd, options).toString();
+        const res = execFileSync(nvidiaSmiExe, nvidiaSmiArgs, options).toString();
         return res;
       } catch (e) {
         util.noop();
