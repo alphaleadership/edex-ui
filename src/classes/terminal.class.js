@@ -508,7 +508,7 @@ class Terminal {
 
                 // Allow common interactive keys; block other control characters.
                 // Allowed C0 controls: \t, \n, \r, ESC, BS
-                if (/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/.test(input)) return null;
+                if (/[\x00-\x07\x0B\x0C\x0E-\x1A\x1C-\x1F\x7F]/.test(input)) return null;
                 // Block C1 controls
                 if (/[\x80-\x9F]/.test(input)) return null;
                 // Block OSC and CSI escape sequences frequently used for terminal control abuse.
