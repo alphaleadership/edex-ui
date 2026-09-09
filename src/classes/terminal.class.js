@@ -503,6 +503,21 @@ class Terminal {
                         return;
                 }
             });
+            const sanitizeTerminalInput = input => {
+                if (typeof input !== "string") return null;
+
+                // Allow common interactive keys; block other control characters.
+                // Allowed C0 controls: \t, \n, \r, ESC, BS
+                if (/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/.test(input)) return null;
+                // Block C1 controls
+                if (/[\x80-\x9F]/.test(input)) return null;
+                // Block OSC and CSI escape sequences frequently used for terminal control abuse.
+                if (/\x1B\][^\x07\x1B]*(?:\x07|\x1B\\)/.test(input)) return null;
+                if (/\x1B\[[0-?]*[ -/]*[@-~]/.test(input)) return null;
+
+                return input;
+            };
+
             this.wss.on("connection", (ws, request) => {
                 if (opts.authToken) {
                     try {
@@ -536,8 +551,8 @@ class Terminal {
                         return;
                     }
 
-                    // Block non-interactive control bytes frequently abused in injected streams.
-                    if (/[\x00\x04]/.test(safeInput)) return;
+                    safeInput = sanitizeTerminalInput(safeInput);
+                    if (safeInput === null) return;
 
                     console.log(safeInput);
                     this.tty.write(safeInput);
