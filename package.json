@@ -103,7 +103,7 @@
   "dependencies": {
     "clean-css": "5.3.1",
     "electron": "^44.2.0",
-    "electron-builder": "^23.5.0",
+    "electron-builder": "^26.15.3",
     "mime-types": "^2.1.35",
     "node-json-minify": "1.0.0",
     "terser": "^5.14.2"
